@@ -1,0 +1,75 @@
+<!doctype html>
+<head>
+	<title>PACES - Agenda grouppe B4</title>
+	<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+	<link rel="manifest" href="/site.webmanifest">
+	<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+	<meta name="msapplication-TileColor" content="#da532c">
+	<meta name="theme-color" content="#ffffff">
+</head>
+	<script src="scheduler/dhtmlxscheduler.js" type="text/javascript" charset="utf-8"></script>
+	<script src="scheduler/locale/locale_fr.js" type="text/javascript" charset="utf-8"></script>
+	<link rel="stylesheet" href="scheduler/dhtmlxscheduler_material.css" type="text/css" charset="utf-8">
+	
+<style type="text/css" >
+	html, body{
+		margin:0px;
+		padding:0px;
+		height:100%;
+		overflow:hidden;
+	}	
+</style>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
+
+<script type="text/javascript" charset="utf-8">
+	function init() {
+			
+		var d = new Date();
+		scheduler.config.xml_date="%Y-%m-%d %H:%i";
+		scheduler.config.first_hour=8;
+		console.log('init events');
+		
+		scheduler.attachEvent("onViewChange", function (mode, date){
+			//scheduler.clearAll();
+			var url = 'http://localhost/getEvents?mode=week&date=' + date.toISOString().substring(0, 10);
+			if(mode == 'day')
+				url = 'http://localhost/getEvents?mode=day&date=' + date.toISOString().substring(0, 10);
+			if(mode == 'month')
+				url = 'http://localhost/getEvents?mode=month&date=' + date.toISOString().substring(0, 10);
+		});
+		
+		scheduler.init('scheduler_here', d, "week");
+		
+		//Load events from server
+		
+		//var url = 'http://agenda.thebad.xyz/getEvents?mode=week&date=' + d.toISOString().substring(0, 10);
+		var url = '/getEvents';
+		scheduler.load(url, 'json');
+		
+		var dp = new dataProcessor(url);
+		dp.init(scheduler);
+		
+	}
+</script>
+
+<body onload="init();">
+	<div id="scheduler_here" class="dhx_cal_container" style='width:100%; height:100%;'>
+		<div class="dhx_cal_navline">
+			<div class="dhx_cal_prev_button">&nbsp;</div>
+			<div class="dhx_cal_next_button">&nbsp;</div>
+			<div class="dhx_cal_today_button"></div>
+			<div class="dhx_cal_date"></div>
+			<div class="dhx_cal_tab" name="day_tab" style="right:204px;"></div>
+			<div class="dhx_cal_tab" name="week_tab" style="right:140px;"></div>
+			<div class="dhx_cal_tab" name="month_tab" style="right:76px;"></div>
+		</div>
+		<div class="dhx_cal_header">
+		</div>
+		<div class="dhx_cal_data">
+		</div>
+	</div>
+</body>
