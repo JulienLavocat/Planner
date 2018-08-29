@@ -32,11 +32,10 @@ public class DB {
 		src.setUser("planner");
 		src.setPassword("220100jlplanner");
 		src.setDatabaseName("planner");
+		src.setAutoReconnect(true);
 
 		con = src.getConnection();
 
-		INSERT_EVENT = con.prepareStatement("INSERT INTO events (day, month, start, end, name) VALUES (?,?,?,?,?)");
-		INSERT_TIME = con.prepareStatement("INSERT INTO day (time) VALUES (?)");
 		SELECT_DAY_EVENTS = con.prepareStatement("SELECT start, end, name, location FROM events WHERE DATE(start) = ?");
 		SELECT_WEEK_EVENTS = con.prepareStatement("SELECT start, end, name, location FROM events WHERE YEARWEEK(start, 1) = YEARWEEK(?, 1) AND YEAR(start) = YEAR(DATE(?))");
 		SELECT_MONTH_EVENTS = con.prepareStatement("SELECT start, end, name, location FROM events WHERE MONTH(start) = MONTH(DATE(?)) AND YEAR(start) = YEAR(DATE(?))");
