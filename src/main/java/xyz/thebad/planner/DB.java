@@ -7,6 +7,8 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
@@ -36,11 +38,24 @@ public class DB {
 
 		con = src.getConnection();
 
-		SELECT_DAY_EVENTS = con.prepareStatement("SELECT start, end, name, location FROM events WHERE DATE(start) = ?");
-		SELECT_WEEK_EVENTS = con.prepareStatement("SELECT start, end, name, location FROM events WHERE YEARWEEK(start, 1) = YEARWEEK(?, 1) AND YEAR(start) = YEAR(DATE(?))");
-		SELECT_MONTH_EVENTS = con.prepareStatement("SELECT start, end, name, location FROM events WHERE MONTH(start) = MONTH(DATE(?)) AND YEAR(start) = YEAR(DATE(?))");
-		SELECT_ALL_EVENTS = con.prepareStatement("SELECT start, end, name, location FROM events");
+		SELECT_DAY_EVENTS = getConnection().prepareStatement("SELECT start, end, name, location FROM events WHERE DATE(start) = ?");
+		SELECT_WEEK_EVENTS = getConnection().prepareStatement("SELECT start, end, name, location FROM events WHERE YEARWEEK(start, 1) = YEARWEEK(?, 1) AND YEAR(start) = YEAR(DATE(?))");
+		SELECT_MONTH_EVENTS = getConnection().prepareStatement("SELECT start, end, name, location FROM events WHERE MONTH(start) = MONTH(DATE(?)) AND YEAR(start) = YEAR(DATE(?))");
+		SELECT_ALL_EVENTS = getConnection().prepareStatement("SELECT start, end, name, location FROM events");
 		
+		 Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new Runnable() {
+
+			@Override
+			public void run() {
+				keepAlive();
+			}
+			
+		 }, 0, 1, TimeUnit.HOURS);
+		
+	}
+	
+	public static synchronized Connection getConnection() {
+		return con;
 	}
 
 	public static HashMap<Integer, Time> getHours() {
@@ -51,7 +66,7 @@ public class DB {
 
 		try {
 
-			ResultSet rs = con.createStatement().executeQuery("SELECT * FROM day");
+			ResultSet rs = getConnection().createStatement().executeQuery("SELECT * FROM day");
 
 			while(rs.next()) {
 				hours.put(rs.getInt(1), rs.getTime(2));
@@ -62,26 +77,6 @@ public class DB {
 		}
 
 		return hours;
-	}
-
-	public static void insertEvents(ArrayList<Event> events) {
-
-		//		for(Event e : events) {
-		//			
-		//			try {
-		//				INSERT_EVENT.setInt(1, e.day);
-		//				INSERT_EVENT.setInt(2, e.month);
-		//				INSERT_EVENT.setInt(3, e.start);
-		//				INSERT_EVENT.setInt(4, e.end);
-		//				INSERT_EVENT.setString(5, e.name);
-		//				INSERT_EVENT.execute();
-		//			} catch (SQLException e1) {
-		//				Sentry.capture(e1);
-		//				System.out.println(e1);
-		//			}
-		//			
-		//		}
-
 	}
 
 	public static ArrayList<Event> getDayEvents(String date) {
@@ -130,6 +125,7 @@ public class DB {
 	
 	public static ArrayList<Event> getAllEvents() {
 		try {		
+			checkConnection();
 			ResultSet rs = SELECT_ALL_EVENTS.executeQuery();
 			return toEventList(rs);
 		} catch (SQLException e) {
@@ -160,8 +156,8 @@ public class DB {
 	public static void updateEvents() {
 
 		//		try {
-		//			PreparedStatement ps = con.prepareStatement("INSERT INTO events2 (start, end, name, location) VALUES (?, ?, ?, ?)");
-		//			ResultSet rs = con.createStatement().executeQuery("SELECT day, month, start, end, name, location FROM events");
+		//			PreparedStatement ps = getConnection().prepareStatement("INSERT INTO events2 (start, end, name, location) VALUES (?, ?, ?, ?)");
+		//			ResultSet rs = getConnection().createStatement().executeQuery("SELECT day, month, start, end, name, location FROM events");
 		//			ArrayList<Event> ev = new ArrayList<Event>(); 
 		//			while(rs.next()) {
 		//				Event e = new Event(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getString(5), rs.getString(6));
@@ -199,12 +195,34 @@ public class DB {
 
 		//System.out.println(Thread.currentThread());
 		try {
-			if(!con.isValid(300));
-			con = src.getConnection();
+			if(!getConnection().isValid(300));
+				con = src.getConnection();
+			
+			getConnection().createStatement().executeQuery("SELECT 1 FROM day");
+			
 		} catch (SQLException e) {
+			System.out.println("Exception thrown when validating connection !");
+			Sentry.capture(e);
 			e.printStackTrace();
+			try {
+				con = src.getConnection();
+			} catch (SQLException e1) {
+				System.out.println("Exception thrown when oppening a new connection !");
+				e1.printStackTrace();
+				Sentry.capture(e);
+			}
 		}
 
 	}
+	
+	private static void keepAlive() {
+		try {
+			getConnection().createStatement().executeQuery("SELECT 1 FROM day");
+		} catch (SQLException e) {
+			e.printStackTrace();
+			Sentry.capture(e);
+		}
+	}
+	 
 
 }
